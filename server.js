@@ -8,16 +8,35 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-app.post('/execute', (req, res) => {
-    const script = req.body.script;
+let isInjected = false;
 
-    // Using a Lua interpreter for execution (e.g., luvit or LuaJIT)
-    exec(`lua -e "${script}"`, (error, stdout, stderr) => {
+// Endpoint to handle injection
+app.post('/inject', (req, res) => {
+    // Simulate injection process
+    exec('path/to/injector.exe', (error) => {
         if (error) {
-            return res.status(500).json({ output: stderr || 'Execution failed' });
+            return res.status(500).json({ success: false, error: 'Injection failed.' });
         }
 
-        res.json({ output: stdout || 'Execution succeeded with no output' });
+        isInjected = true;
+        res.json({ success: true });
+    });
+});
+
+// Endpoint to handle script execution
+app.post('/execute', (req, res) => {
+    if (!isInjected) {
+        return res.status(400).json({ output: 'Error: Not injected into Roblox.' });
+    }
+
+    const script = req.body.script;
+
+    exec(`lua -e "${script}"`, (error, stdout, stderr) => {
+        if (error) {
+            return res.status(500).json({ output: stderr || 'Execution failed.' });
+        }
+
+        res.json({ output: stdout || 'Execution succeeded with no output.' });
     });
 });
 
