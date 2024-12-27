@@ -1,43 +1,36 @@
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const ffi = require('ffi-napi');
 
 const app = express();
 const PORT = 3000;
 
-app.use(cors());
-app.use(express.json());
+// Load the DLL
+const injector = ffi.Library('./path/to/injector.dll', {
+    'ExecuteScript': ['void', ['string']],
+});
 
 let isInjected = false;
 
-// Endpoint to handle injection
+// Endpoint to inject the DLL
 app.post('/inject', (req, res) => {
-    // Simulate injection process
-    exec('path/to/injector.exe', (error) => {
-        if (error) {
-            return res.status(500).json({ success: false, error: 'Injection failed.' });
-        }
-
-        isInjected = true;
-        res.json({ success: true });
-    });
+    isInjected = true; // Simulate successful injection
+    res.json({ success: true, message: 'Injection simulated!' });
 });
 
-// Endpoint to handle script execution
+// Endpoint to execute a script
 app.post('/execute', (req, res) => {
     if (!isInjected) {
         return res.status(400).json({ output: 'Error: Not injected into Roblox.' });
     }
 
     const script = req.body.script;
-
-    exec(`lua -e "${script}"`, (error, stdout, stderr) => {
-        if (error) {
-            return res.status(500).json({ output: stderr || 'Execution failed.' });
-        }
-
-        res.json({ output: stdout || 'Execution succeeded with no output.' });
-    });
+    try {
+        injector.ExecuteScript(script);
+        res.json({ output: 'Script executed successfully!' });
+    } catch (error) {
+        res.status(500).json({ output: `Execution failed: ${error.message}` });
+    }
 });
 
 app.listen(PORT, () => {
